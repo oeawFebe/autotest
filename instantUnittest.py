@@ -1,40 +1,31 @@
-import time,os
+# This script will detect any change in scripts in the same directory or sub-directories and run unittest automatically.
+# Using python3.9.0
 import time
 from fabric.api import local
 from watchdog.observers.polling import PollingObserver as Observer
-from watchdog.events import PatternMatchingEventHandler
+from watchdog.events import FileSystemEventHandler
   
-def on_created(event): 
-    runTest()
-def on_modified(event):
-    runTest()
-
-def runTest():
-    print('\n\n')
+def on_created_or_modified(event):
+    """run unittest by using fabric3"""
     try:
-        local('py test.py')
+        # There is a unittest script named 'test.py' in the same directory.
+        local('python test.py')
     except:
-        print("Detected Error. Continuing Monitoring.\n\n\n")
+        # Let the user know that unittest failed or encountered an error but keep running this script.
+        print("Detected failure or an error.")
+
 if __name__ == "__main__":
-    patterns = "*"
-    ignore_patterns = ""
-    ignore_directories = False
-    case_sensitive = True
-    my_event_handler = PatternMatchingEventHandler(patterns, ignore_patterns, ignore_directories, case_sensitive)
+    my_event_handler = FileSystemEventHandler()
+    my_event_handler.on_created  = on_created_or_modified
+    my_event_handler.on_modified = on_created_or_modified
 
-    my_event_handler.on_created = on_created
-    my_event_handler.on_modified = on_modified
-
-    path_ = "."
-    go_recursively = True
     my_observer = Observer()
-    my_observer.schedule(my_event_handler, path_, recursive=go_recursively)
-
+    my_observer.schedule(my_event_handler, path='.', recursive=True)
     my_observer.start()
     try:
         while True:
             time.sleep(5)
-    except (Exception):
+    except Exception:
         my_observer.stop()
     my_observer.join()
 
